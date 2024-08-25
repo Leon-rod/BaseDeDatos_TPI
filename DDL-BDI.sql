@@ -315,4 +315,10 @@ create table prueba_franco(
 	prueba varchar(20) not null
 
 	CONSTRAINT PK_PRUEBA_FRANCO PRIMARY KEY(ID_PRUEBA)
+	);
+
+CREATE TABLE PRUEBA_LEO(
+	ID_PRUEBA INT,
+	CONSTRAINT PK PRIMARY KEY (ID_PRUEBA)
+
 );
