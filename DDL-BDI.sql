@@ -667,7 +667,14 @@ INSERT INTO BARRIOS(BARRIO, id_ciudad)
 					VALUES('25 de Mayo', 35);
 					
 INSERT INTO BARRIOS(BARRIO, id_ciudad)
-					VALUES('Moron', 55);		
+					VALUES('Moron', 55);
+INSERT INTO BARRIOS(BARRIO, id_ciudad)
+					VALUES('San Javier', 55);
+INSERT INTO BARRIOS(BARRIO, id_ciudad)
+					VALUES('San josé', 55);
+INSERT INTO BARRIOS(BARRIO, id_ciudad)
+					VALUES('Villa Adela', 5);
+				
 
 ---					
 
