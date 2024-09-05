@@ -1,7 +1,7 @@
-CREATE DATABASE Farmaceutica
+CREATE DATABASE Farmaceutica4
 
 go
-use Farmaceutica
+use Farmaceutica4
 go
 
 -- TABLAS SATELITE
