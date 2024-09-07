@@ -295,12 +295,6 @@ INSERT INTO INVENTARIOS(ID_INVENTARIO, CANTIDAD, FECHA, ID_TIPO_MOV, ID_STOCK)
 INSERT INTO INVENTARIOS(ID_INVENTARIO, CANTIDAD, FECHA, ID_TIPO_MOV, ID_STOCK)
 			VALUES(32, 100, '', ,  )
 
---- Es necesario revisar el tp
---- Corregí el CUIT en empresa logística, vno es mejor que sea siempre un BIGINT?. Corregirlo en proveedores y laboratorios?
---- El inventario debería ser por medicamento, no por obra social, al proovedor no le interesa ya que el descuento lo podría el establecimiento central
---- Verificar si para cada inventario stock, existe su correspondiente stock.
---- Deje comentada la tabla tipos_pagos_promociones porque al final no vamos a usarla no? 
-
 
 
 
