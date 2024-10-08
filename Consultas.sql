@@ -119,13 +119,12 @@ select E.ID_ESTABLECIMIENTO,e.NOMBRE 'Establecimiento', FORMAT(SUM(d.CANTIDAD * 
 		where d.ID_MEDICAMENTO_LOTE is not null	
 		group by  E.ID_ESTABLECIMIENTO, e.NOMBRE					
 
-
 --4)
---Listar clientes con su contacto y barrio, la cantidad de compras del mes 
---y su mayor monto de compra.
---Además, estos clientes deben ser los que tuvieron la mayor cantidad de medicamentos dispensados cada mes
--- y que su mayor monto de compra (de dicho mes) sea mayor al promedio general de montos de compra.
---Agrupar por mes, ordenado por el total de medicamentos dispensados.
+--Listar el contacto, el barrio, el total de medicamentos dispensados,
+--la cantidad de compras y el mayor monto de compra de los clientes
+--que tuvieron la mayor cantidad de medicamentos dispensados del mes.
+--El mayor monto de compra del mes debe ser mayor al promedio general de montos de compra.
+--Agrupado por mes, ordenado por el total de medicamentos dispensados.
 SELECT 
     YEAR(F.FECHA) AS anio,  
     DATENAME(MONTH, F.FECHA) AS mes, 
@@ -161,9 +160,3 @@ HAVING
      FROM DISPENSACIONES D1) 
 ORDER BY 
     total_medicamentos DESC;
-
-
-
-
-
-
