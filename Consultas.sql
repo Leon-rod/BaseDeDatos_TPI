@@ -1,8 +1,35 @@
-	
+--- Oj	
 
 
 ------------------------------------------------------------------ CONSULTAS ---------------------------------------------------------------------------
--- Esta consulta es casi lo mismo que la 2. Hay que cambiarla
+--1)
+--Mostrar los totales facturados por año, mes y vendedor, además de la venta mas cara, siempre y cuando este total sea superior a su propio promedio
+-- de ventas en el año corriente.
+SELECT YEAR(F.FECHA) 'AÑO', 
+	   MONTH(F.FECHA) 'MES',
+	   F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS 'ID_PERSONAL',
+	   P.APELLIDO + ', ' + P.NOMBRE 'PERSONAL',
+	   SUM(D.CANTIDAD * D.PRECIO_UNITARIO) 'TOTAL_FACTURADO',
+	   MAX(D.CANTIDAD*D.PRECIO_UNITARIO) 'VENTA_MAS_CARA'
+FROM FACTURAS F
+JOIN PERSONAL_CARGOS_ESTABLECIMIENTOS PCE ON PCE.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS =  F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
+JOIN DISPENSACIONES D ON D.ID_FACTURA = F.ID_FACTURA
+JOIN PERSONAL P ON P.ID_PERSONAL = PCE.ID_PERSONAL
+GROUP BY YEAR(F.FECHA), MONTH(F.FECHA), P.APELLIDO + ', ' + P.NOMBRE, F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
+HAVING SUM(D.CANTIDAD * D.PRECIO_UNITARIO) > (SELECT SBC.PROMEDIO
+												FROM (SELECT F1.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS 'ID_PERSONAL_1', AVG(D1.CANTIDAD*(D1.PRECIO_UNITARIO-(D1.DESCUENTO*D1.PRECIO_UNITARIO))) 'PROMEDIO'
+													  FROM FACTURAS F1
+													  JOIN DISPENSACIONES D1 ON D1.ID_FACTURA = F1.ID_FACTURA
+													  WHERE YEAR(F1.FECHA) = YEAR(GETDATE())
+													  GROUP BY F1.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
+													  ) AS SBC
+												WHERE SBC.ID_PERSONAL_1 = F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS)
+
+--2)
+--- En una misma tabla se solicita un reporte por año y factura de aquellas que habiendo sido abonadas (al menos en una parte) con el tipo de pago 'Tarjeta de Credito'
+--- tengan más de 2 dispensaciones. Por otro lado se solicitan las facturas que fueron abonadas (al menos en una parte) con el tipo de pago 'QR MODO' y que a su vez
+--- todas sus dispensaciones hayan tenido un importe superior a los $5000, teniendo en cuenta el descuento que se les haya aplicado. Este reporte debe estar ordenado
+--- por el tipo de pago y por su año ascendente.
 SELECT F.ID_FACTURA 'NUMERO DE FACTURA',
 	   YEAR(F.FECHA) 'AÑO',
 	   COUNT(D.ID_DISPENSACION) 'CANTIDAD DISPENSACIONES',	   
@@ -28,74 +55,7 @@ JOIN DISPENSACIONES D ON D.ID_FACTURA = F.ID_FACTURA
 WHERE TP.TIPO_PAGO = 'QR MODO'
 GROUP BY YEAR(F.FECHA), F.ID_FACTURA
 HAVING 5000 <  ALL (SELECT D1.CANTIDAD*(D1.PRECIO_UNITARIO-(D1.DESCUENTO*D1.PRECIO_UNITARIO)) FROM DISPENSACIONES D1 WHERE D1.ID_FACTURA = F.ID_FACTURA)
-
-
-
---1)
---Mostrar los totales facturados por año, mes y vendedor, además de la venta mas cara, siempre y cuando este total sea superior a su propio promedio
--- de ventas en el año corriente.
-select YEAR(F.FECHA) 'AÑO', 
-	   MONTH(F.FECHA) 'MES',
-	   F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS 'ID_PERSONAL',
-	   P.APELLIDO + ', ' + P.NOMBRE 'PERSONAL',
-	   SUM(D.CANTIDAD * D.PRECIO_UNITARIO) 'TOTAL_FACTURADO',
-	   MAX(D.CANTIDAD*D.PRECIO_UNITARIO) 'VENTA_MAS_CARA'
-From FACTURAS F
-JOIN PERSONAL_CARGOS_ESTABLECIMIENTOS PCE ON PCE.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS =  F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
-JOIN DISPENSACIONES D ON D.ID_FACTURA = F.ID_FACTURA
-JOIN PERSONAL P ON P.ID_PERSONAL = PCE.ID_PERSONAL
-GROUP BY YEAR(F.FECHA), MONTH(F.FECHA), P.APELLIDO + ', ' + P.NOMBRE, F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
-HAVING SUM(D.CANTIDAD * D.PRECIO_UNITARIO) < (SELECT SBC.PROMEDIO
-												FROM (SELECT F1.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS 'ID_PERSONAL_1', AVG(D1.CANTIDAD*(D1.PRECIO_UNITARIO-(D1.DESCUENTO*D1.PRECIO_UNITARIO))) 'PROMEDIO'
-													  FROM FACTURAS F1
-													  JOIN DISPENSACIONES D1 ON D1.ID_FACTURA = F1.ID_FACTURA
-													  WHERE YEAR(F1.FECHA) = YEAR(GETDATE())
-													  GROUP BY F1.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS
-													  ) AS SBC
-												WHERE SBC.ID_PERSONAL_1 = F.ID_PERSONAL_CARGOS_ESTABLECIMIENTOS)
-
---2)
--- Se necesita saber la cantidad de clientes que pagaron al menos dos productos diferentes segun tipo de pago, 
- 
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'Tarjeta de Credito' 'TIPO_PAGO'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-JOIN (SELECT F1.ID_FACTURA 'FACTURA', COUNT(D1.ID_FACTURA) 'CANTIDAD_DETALLES'
-	  FROM FACTURAS F1
-	  JOIN DISPENSACIONES D1 ON D1.ID_FACTURA = F1.ID_FACTURA
-	  GROUP BY F1.ID_FACTURA) SC ON SC.FACTURA = F.ID_FACTURA
-WHERE TP.TIPO_PAGO = 'Tarjeta de Credito'
-AND SC.CANTIDAD_DETALLES > 2
-GROUP BY YEAR(F.FECHA)
-
-UNION
-
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'QR_MODO'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-WHERE TP.TIPO_PAGO = 'QR MODO'
-GROUP BY YEAR(F.FECHA)
-
-UNION
-
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'Transferencia'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-WHERE TP.TIPO_PAGO = 'Transferencia'
-GROUP BY YEAR(F.FECHA)
-
-ORDER BY 3
-
-
+ORDER BY 4, 2 ASC
 
 --3)								
 --- Se quiere saber el total facturado por cada establecimiento desde el comienzo de los registros, el mejor año y su facturacion tomando
@@ -120,20 +80,19 @@ select E.ID_ESTABLECIMIENTO,e.NOMBRE 'Establecimiento', FORMAT(SUM(d.CANTIDAD * 
 		group by  E.ID_ESTABLECIMIENTO, e.NOMBRE					
 
 --4)
---Listar el contacto, el barrio, el total de medicamentos dispensados,
---la cantidad de compras y el mayor monto de compra de los clientes
+--Listar el contacto, el barrio, el total de medicamentos dispensados, la cantidad de compras y el mayor monto de compra de los clientes
 --que tuvieron la mayor cantidad de medicamentos dispensados del mes.
 --El mayor monto de compra del mes debe ser mayor al promedio general de montos de compra.
 --Agrupado por mes, ordenado por el total de medicamentos dispensados.
 SELECT 
-    YEAR(F.FECHA) AS anio,  
-    DATENAME(MONTH, F.FECHA) AS mes, 
-    C.NOMBRE + ' ' + C.APELLIDO AS cliente, 
-    SUM(CASE WHEN D.ID_MEDICAMENTO_LOTE IS NOT NULL THEN D.CANTIDAD ELSE 0 END) AS total_medicamentos,
-    CO.CONTACTO, 
-    B.BARRIO, 
-    COUNT(*) AS cantidad_compras, 
-    MAX(D.CANTIDAD * (D.PRECIO_UNITARIO - (D.PRECIO_UNITARIO * D.DESCUENTO))) AS mayor_monto 
+    YEAR(F.FECHA) 'Año',  
+    DATENAME(MONTH, F.FECHA) 'Mes', 
+    C.NOMBRE + ' ' + C.APELLIDO 'Cliente', 
+    SUM(CASE WHEN D.ID_MEDICAMENTO_LOTE IS NOT NULL THEN D.CANTIDAD ELSE 0 END) 'Total_Medicamentos',
+    CO.CONTACTO 'Contacto', 
+    B.BARRIO 'Barrio', 
+    COUNT(*) 'Cantidad_Compras', 
+    MAX(D.CANTIDAD * (D.PRECIO_UNITARIO - (D.PRECIO_UNITARIO * D.DESCUENTO))) 'Mayor Monto' 
 FROM 
     DISPENSACIONES D
 JOIN 
@@ -281,4 +240,43 @@ GROUP BY (CASE WHEN S.ID_PRODUCTO IS NULL THEN (SC.MEDICAMENTO)
 											  END), E.NOMBRE
 
 				
+-------------- ESTA ERA LA '2' ---------------------------
+-- Se necesita saber la cantidad de clientes que pagaron al menos dos productos diferentes segun tipo de pago, 
+ 
+SELECT YEAR(F.FECHA) 'AÑO',
+	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
+	   'Tarjeta de Credito' 'TIPO_PAGO'
+FROM FACTURAS F
+JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
+JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
+JOIN (SELECT F1.ID_FACTURA 'FACTURA', COUNT(D1.ID_FACTURA) 'CANTIDAD_DETALLES'
+	  FROM FACTURAS F1
+	  JOIN DISPENSACIONES D1 ON D1.ID_FACTURA = F1.ID_FACTURA
+	  GROUP BY F1.ID_FACTURA) SC ON SC.FACTURA = F.ID_FACTURA
+WHERE TP.TIPO_PAGO = 'Tarjeta de Credito'
+AND SC.CANTIDAD_DETALLES > 2
+GROUP BY YEAR(F.FECHA)
 
+UNION
+
+SELECT YEAR(F.FECHA) 'AÑO',
+	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
+	   'QR_MODO'
+FROM FACTURAS F
+JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
+JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
+WHERE TP.TIPO_PAGO = 'QR MODO'
+GROUP BY YEAR(F.FECHA)
+
+UNION
+
+SELECT YEAR(F.FECHA) 'AÑO',
+	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
+	   'Transferencia'
+FROM FACTURAS F
+JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
+JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
+WHERE TP.TIPO_PAGO = 'Transferencia'
+GROUP BY YEAR(F.FECHA)
+
+ORDER BY 3
