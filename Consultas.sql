@@ -1,4 +1,3 @@
---- Oj	
 
 
 ------------------------------------------------------------------ CONSULTAS ---------------------------------------------------------------------------
@@ -80,10 +79,11 @@ select E.ID_ESTABLECIMIENTO,e.NOMBRE 'Establecimiento', FORMAT(SUM(d.CANTIDAD * 
 		group by  E.ID_ESTABLECIMIENTO, e.NOMBRE					
 
 --4)
---Listar el contacto, el barrio, el total de medicamentos dispensados, la cantidad de compras y el mayor monto de compra de los clientes
---que tuvieron la mayor cantidad de medicamentos dispensados del mes.
---El mayor monto de compra del mes debe ser mayor al promedio general de montos de compra.
+--Listar el contacto, el barrio, el total de medicamentos dispensados, la cantidad de compras y el mayor monto de compra de los clientes.
+--El mayor monto de compra del mes debe ser mayor al promedio general de montos de compra y su contacto sea un mail.
 --Agrupado por mes, ordenado por el total de medicamentos dispensados.
+
+
 SELECT 
     YEAR(F.FECHA) 'Año',  
     DATENAME(MONTH, F.FECHA) 'Mes', 
@@ -95,21 +95,20 @@ SELECT
     MAX(D.CANTIDAD * (D.PRECIO_UNITARIO - (D.PRECIO_UNITARIO * D.DESCUENTO))) 'Mayor Monto' 
 FROM 
     DISPENSACIONES D
-JOIN 
-    FACTURAS F ON F.ID_FACTURA = D.ID_FACTURA
-JOIN 
-    CLIENTES C ON F.ID_CLIENTE = C.ID_CLIENTE
-JOIN 
-    CONTACTOS CO ON CO.ID_CLIENTE = C.ID_CLIENTE
-JOIN 
-    BARRIOS B ON B.ID_BARRIO = C.ID_BARRIO
-JOIN 
-    MEDICAMENTOS_LOTES ML ON ML.ID_MEDICAMENTO_LOTE = D.ID_MEDICAMENTO_LOTE
-JOIN 
-    MEDICAMENTOS M ON M.ID_MEDICAMENTO = ML.ID_MEDICAMENTO
+JOIN FACTURAS F ON F.ID_FACTURA = D.ID_FACTURA
+JOIN CLIENTES C ON F.ID_CLIENTE = C.ID_CLIENTE
+JOIN CONTACTOS CO ON CO.ID_CLIENTE = C.ID_CLIENTE
+JOIN BARRIOS B ON B.ID_BARRIO = C.ID_BARRIO
+JOIN MEDICAMENTOS_LOTES ML ON ML.ID_MEDICAMENTO_LOTE = D.ID_MEDICAMENTO_LOTE
+JOIN MEDICAMENTOS M ON M.ID_MEDICAMENTO = ML.ID_MEDICAMENTO
+JOIN TIPOS_CONTACTOS TP ON CO.ID_TIPO_CONTACTO = TP.ID_TIPO_CONTACTO
+
+WHERE TP.TIPO_CONTACTO = 'Mail'
+
 GROUP BY 
     YEAR(F.FECHA), 
     DATENAME(MONTH, F.FECHA), 
+	C.ID_CLIENTE,
     C.NOMBRE + ' ' + C.APELLIDO, 
     CO.CONTACTO, 
     B.BARRIO
@@ -118,7 +117,7 @@ HAVING
     (SELECT AVG(D1.CANTIDAD * (D1.PRECIO_UNITARIO - (D1.PRECIO_UNITARIO * D1.DESCUENTO))) 
      FROM DISPENSACIONES D1) 
 ORDER BY 
-    total_medicamentos DESC;
+   Total_Medicamentos DESC;
 
 
 
@@ -126,8 +125,6 @@ ORDER BY
 --tabletas comprimidas. Mostrar solo aquellos cuyos precios unitarios sean mayores al promedio de precios unitarios
 --de los medicamentos que cumplan todas las condiciones anteriores. 
 
---OBSERVACION: Dado que la misma consulta es llamada desde distintas tablas, se puede simplificar considerablemente
---creando una vista con los datos base
 
 SELECT SBC.MEDICAMENTO, SBC.DESCRIPCION, SBC.PRECIO
 FROM (SELECT M.NOMBRE_COMERCIAL 'MEDICAMENTO', M.DESCRIPCION 'DESCRIPCION', M.PRECIO 'PRECIO'
@@ -183,100 +180,3 @@ WHERE SBC.PRECIO > (SELECT AVG(SBC1.PRECIO)
 
 
 
-
---------------------------CEMENTERIO DE CONSULTAS----------------------------------
---Aquellas consultas productos de delirios místicos que jamás verán la luz del día...
-
---Listar medicamentos cuya forma de presentacion haya sido en tabletas comprimidas; junto a los productos
---que tambien hayan sido repuestos en el mismo mes. Mostrar aquellos articulos en los que su precio actual sea mayor
---que el promedio de su precio historico
-
-SELECT (CASE WHEN DPE.ID_PRODUCTO IS NULL THEN (SELECT SCM.MEDICAMENTO FROM DETALLES_PEDIDOS DPE1 
-											    WHERE SCM.ID_MEDICAMENTO_LOTE = DPE.ID_MEDICAMENTO_LOTE) 
-										  ELSE (SELECT SCP.PRODUCTO FROM DETALLES_PEDIDOS DPE2
-											    WHERE SCP.ID_PRODUCTO  = DPE.ID_PRODUCTO) END) 'ARTICULO'
-FROM DETALLES_PEDIDOS DPE
-JOIN (SELECT M.NOMBRE_COMERCIAL 'MEDICAMENTO', M.ID_MEDICAMENTO 'ID_MEDICAMENTO', ML.ID_MEDICAMENTO_LOTE 'ID_MEDICAMENTO_LOTE'
-	  FROM MEDICAMENTOS M
-	  JOIN MEDICAMENTOS_LOTES ML ON ML.ID_MEDICAMENTO = M.ID_MEDICAMENTO
-	  JOIN DETALLES_PEDIDOS DP ON DP.ID_MEDICAMENTO_LOTE = ML.ID_MEDICAMENTO_LOTE
-	  JOIN PEDIDOS P ON P.ID_PEDIDO = DP.ID_PEDIDO
-	  JOIN PRESENTACIONES PR ON PR.ID_PRESENTACION = M.ID_PRESENTACION
-	  WHERE DP.ID_MEDICAMENTO_LOTE IS NOT NULL
-	  AND MONTH(P.FECHA) = 8 AND YEAR(GETDATE()) = YEAR(P.FECHA)
-	  AND PR.PRESENTACION LIKE '%COMP%') SCM ON SCM.ID_MEDICAMENTO_LOTE = DPE.ID_MEDICAMENTO_LOTE
-JOIN (SELECT P.DESCRIPCION 'PRODUCTO', P.ID_PRODUCTO 'ID_PRODUCTO'
-	  FROM PRODUCTOS P
-	  JOIN DETALLES_PEDIDOS DP ON DP.ID_PRODUCTO = P.ID_PRODUCTO
-	  JOIN PEDIDOS PE ON PE.ID_PEDIDO = DP.ID_PEDIDO
-	  WHERE DP.ID_PRODUCTO IS NOT NULL
-	  AND MONTH(PE.FECHA) = 8 AND YEAR(GETDATE()) = YEAR(PE.FECHA)) SCP ON SCP.ID_PRODUCTO = DPE.ID_PRODUCTO
-
-
-
--- Listar los productos y medicamentos en conjunto, cuyo total de ventas (separando entre establecimientos) 
--- del mes de agosto haya sido mayor que el promedio universal de ventas en el mismo mes. 
-
-SELECT TOP 15 (CASE WHEN S.ID_PRODUCTO IS NULL THEN (SC.MEDICAMENTO) ELSE (SC1.PRODUCTO) END) 'ARTICULO',
-	   E.NOMBRE 'ESTABLECIMIENTO'
-FROM STOCKS S
-JOIN (SELECT M.NOMBRE_COMERCIAL 'MEDICAMENTO', S1.ID_STOCK 'ID_STOCK'
-	  FROM MEDICAMENTOS M 
-	  JOIN MEDICAMENTOS_LOTES ML ON ML.ID_MEDICAMENTO = M.ID_MEDICAMENTO
-	  JOIN STOCKS S1 ON S1.ID_MEDICAMENTO_LOTE = ML.ID_MEDICAMENTO_LOTE
-	  ) SC ON SC.ID_STOCK = S.ID_STOCK 
-JOIN (SELECT P.DESCRIPCION 'PRODUCTO', S2.ID_STOCK 'ID_PRODUCTO'
-	  FROM PRODUCTOS P
-	  JOIN STOCKS S2 ON S2.ID_PRODUCTO = P.ID_PRODUCTO
-	  ) SC1 ON SC1.ID_PRODUCTO = S.ID_PRODUCTO
-JOIN INVENTARIOS I ON I.ID_STOCK = S.ID_STOCK
-JOIN FACTURAS F ON F.ID_FACTURA = I.ID_FACTURA
-JOIN DISPENSACIONES D ON D.ID_FACTURA = F.ID_FACTURA
-JOIN ESTABLECIMIENTOS E ON E.ID_ESTABLECIMIENTO = S.ID_ESTABLECIMIENTO
-WHERE MONTH(F.FECHA) = 8 AND YEAR(F.FECHA) = 2024
-GROUP BY (CASE WHEN S.ID_PRODUCTO IS NULL THEN (SC.MEDICAMENTO) 
-											  ELSE 
-											  (SC1.PRODUCTO) 
-											  END), E.NOMBRE
-
-				
--------------- ESTA ERA LA '2' ---------------------------
--- Se necesita saber la cantidad de clientes que pagaron al menos dos productos diferentes segun tipo de pago, 
- 
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'Tarjeta de Credito' 'TIPO_PAGO'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-JOIN (SELECT F1.ID_FACTURA 'FACTURA', COUNT(D1.ID_FACTURA) 'CANTIDAD_DETALLES'
-	  FROM FACTURAS F1
-	  JOIN DISPENSACIONES D1 ON D1.ID_FACTURA = F1.ID_FACTURA
-	  GROUP BY F1.ID_FACTURA) SC ON SC.FACTURA = F.ID_FACTURA
-WHERE TP.TIPO_PAGO = 'Tarjeta de Credito'
-AND SC.CANTIDAD_DETALLES > 2
-GROUP BY YEAR(F.FECHA)
-
-UNION
-
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'QR_MODO'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-WHERE TP.TIPO_PAGO = 'QR MODO'
-GROUP BY YEAR(F.FECHA)
-
-UNION
-
-SELECT YEAR(F.FECHA) 'AÑO',
-	   COUNT(F.ID_FACTURA) 'CANTIDAD_FACTURAS',
-	   'Transferencia'
-FROM FACTURAS F
-JOIN FACTURAS_TIPOS_PAGOS FTP ON FTP.ID_FACTURA = F.ID_FACTURA
-JOIN TIPOS_PAGOS TP ON TP.ID_TIPO_PAGO = FTP.ID_TIPO_PAGO
-WHERE TP.TIPO_PAGO = 'Transferencia'
-GROUP BY YEAR(F.FECHA)
-
-ORDER BY 3
