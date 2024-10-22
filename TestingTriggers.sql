@@ -43,3 +43,19 @@ INSERT INTO INVENTARIOS(ID_FACTURA, ID_DISPENSACION , ID_TIPO_MOV, ID_STOCK, CAN
 			VALUES( null, null, 3,  107, 100)
 
 -- FIN TEST DIS_ACTUALIZAR_STOCK_OTROS
+
+
+-- INICIO TEST TRIGGER DIS_REPONER_ARTICULO
+
+--Se debe tener en cuenta la posibilidad de que el establecimiento tenga o no previamente 
+--un registro de stock cargado; según eso, procederá a crear uno o usar el ya existente
+INSERT INTO DETALLES_PEDIDOS(ID_PEDIDO,ID_DETALLE_PEDIDO,ID_MEDICAMENTO_LOTE,ID_PROVEEDOR,ID_PRODUCTO,CANTIDAD,PRECIO_UNITARIO)
+VALUES (4,19,3,10,NULL,1000,3500)
+
+--Para el seguimiento de valores insertados al pedido con id_pedido = 4
+SELECT * FROM DETALLES_PEDIDOS --27
+SELECT * FROM INVENTARIOS
+WHERE ID_PEDIDO = 4 --18
+SELECT * FROM STOCKS
+WHERE ID_ESTABLECIMIENTO = 3 --20
+-- FIN TEST TRIGGER DIS_REPONER_ARTICULO
