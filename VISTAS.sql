@@ -28,14 +28,13 @@ AS
 ---------------------------------------------------------------------------------------------------------------------------	
 	
 
-
-CREATE VIEW SP_REPORTE_MENSUAL_OBRA_SOCIAL
+ALTER VIEW V_REPORTE_MENSUAL_OBRA_SOCIAL
 AS
-Select OS.NOMBRE 'Obra Social',
+Select OS.NOMBRE 'Obra_Social',
 	SUM(CASE
 			WHEN D.ID_COBERTURA IS NOT NULL THEN (d.CANTIDAD * d.PRECIO_UNITARIO * d.DESCUENTO)
 			ELSE 0
-			END) 'Importe a reintegrar',
+			END) 'Importe_a_reintegrar',
 	MONTH(f.FECHA) 'Mes',
 	YEAR(f.fecha) 'Año'
 FROM DISPENSACIONES D
@@ -45,3 +44,5 @@ JOIN Facturas f ON d.ID_FACTURA = f.ID_FACTURA
 
 GROUP BY OS.NOMBRE, YEAR(f.fecha) ,MONTH(f.FECHA)
 
+select * from V_REPORTE_MENSUAL_OBRA_SOCIAL
+where Obra_Social like '%das%'
